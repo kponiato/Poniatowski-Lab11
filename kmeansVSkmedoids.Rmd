@@ -14,10 +14,10 @@ We also measure the time taken for each clustering method.
 
 ```{r setup, message=FALSE, warning=FALSE}
 # Install libraries if not already installed
-# install.packages("cluster")
-# install.packages("factoextra")
-# install.packages("ggplot2")
-# install.packages("tictoc")
+install.packages("cluster")
+install.packages("factoextra")
+install.packages("ggplot2")
+install.packages("tictoc")
 
 # Load necessary libraries
 library(cluster)      # For K-Medoids (PAM)
@@ -86,4 +86,48 @@ p2 <- ggplot(data, aes(x = feature1, y = feature2, color = KMedoids_Cluster)) +
 
 # Print the K-Medoids plot
 print(p2)
+```
+```{r}
+# Function to generate data
+generate_data <- function(n) {
+  cluster1 <- data.frame(x = rnorm(n/3, mean = 2, sd = 0.5), y = rnorm(n/3, mean = 2, sd = 0.5))
+  cluster2 <- data.frame(x = rnorm(n/3, mean = 6, sd = 0.5), y = rnorm(n/3, mean = 6, sd = 0.5))
+  cluster3 <- data.frame(x = rnorm(n/3, mean = 10, sd = 0.5), y = rnorm(n/3, mean = 2, sd = 0.5))
+  data <- rbind(cluster1, cluster2, cluster3)
+  colnames(data) <- c("feature1", "feature2")
+  return(scale(data))  # Normalize the data
+}
+
+# Define different dataset sizes
+n_values <- c(300, 500, 700, 900, 1100, 1300, 1500)
+results <- data.frame(n = integer(), method = character(), time = numeric())
+
+# Loop over different data sizes
+for (n in n_values) {
+  scaled_data <- generate_data(n)
+  
+  # Measure time for K-Means
+  tic()
+  kmeans(scaled_data, centers = 3, nstart = 10)
+  time_kmeans <- toc(log = TRUE)
+  
+  # Measure time for K-Medoids
+  tic()
+  pam(scaled_data, 3)
+  time_kmedoids <- toc(log = TRUE)
+  
+  # Store results
+  results <- rbind(results, data.frame(n = n, method = "K-Means", time = as.numeric(gsub(" sec elapsed", "", time_kmeans[[1]]))))
+  results <- rbind(results, data.frame(n = n, method = "K-Medoids", time = as.numeric(gsub(" sec elapsed", "", time_kmedoids[[1]]))))
+}
+
+# Plot runtime comparison
+ggplot(results, aes(x = n, y = time, color = method)) +
+  geom_line(linewidth = 1) +  # Use linewidth instead of size
+  geom_point(size = 2) +
+  scale_x_log10() +  # Log scale for better visualization
+  ggtitle("Runtime Comparison: K-Means vs. K-Medoids") +
+  xlab("Number of Data Points (log scale)") +
+  ylab("Time (seconds)") +
+  theme_minimal()
 ```
